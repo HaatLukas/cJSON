@@ -1,0 +1,51 @@
+name: ino_dev cJSON CI
+
+on:
+  push:
+    branches:
+      - ino_dev
+  pull_request:
+    branches:
+      - ino_dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      - name: Instalacja zaleznosci
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Konfiguracja CMake
+        run: |
+          cmake -S . -B build -DENABLE_CJSON_TEST=On
+
+      - name: Build
+        run: |
+          cmake --build build
+
+      - name: Testy
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - name: Przygotowanie artefaktu
+        run: |
+          mkdir -p artifact
+          cp build/cJSON_test artifact/ || true
+          cp build/libcjson.* artifact/ || true
+          tar -czf cjson-artifact.tar.gz artifact
+
+      - name: Publikacja artefaktu
+        uses: actions/upload-artifact@v4
+        with:
+          name: cjson-build-artifact
+          path: cjson-artifact.tar.gz
